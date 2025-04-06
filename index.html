@@ -1,0 +1,167 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentação G3script</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #e0e0e0;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1e1e1e;
+        }
+        h1 {
+            color: #ffffff;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #66b3ff;
+            margin-top: 30px;
+        }
+        h3 {
+            color: #4da8da;
+            margin-top: 20px;
+        }
+        code {
+            background-color: #2a2a2a;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
+            color: #d4d4d4;
+        }
+        pre {
+            background-color: #2a2a2a;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            color: #d4d4d4;
+        }
+        .command {
+            margin-bottom: 15px;
+        }
+        .syntax {
+            font-weight: bold;
+            color: #a9d1ff;
+        }
+        .example {
+            margin-top: 40px;
+            padding: 15px;
+            background-color: #252525;
+            border-radius: 5px;
+        }
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Documentação G3script</h1>
+    
+    <p>G3script é uma linguagem para renderização 3D usando WebGL. Permite definir objetos 3D, transformações e configurações de câmera.</p>
+
+    <h2>Comandos Básicos</h2>
+
+    <h3>Variáveis</h3>
+    <div class="command">
+        <p class="syntax">vari nome valor;</p>
+        <p>Define uma variável que pode ser referenciada como <code>$nome</code> em outros comandos.</p>
+    </div>
+
+    <h3>Importação</h3>
+    <div class="command">
+        <p class="syntax">IMPORT "caminho/arquivo.g3s"</p>
+        <p>Importa outro script G3script.</p>
+    </div>
+
+    <h2>Objetos</h2>
+
+    <h3>Criação de Objetos</h3>
+    <div class="command">
+        <pre>ADD ID "nome_objeto":
+  // Comandos do objeto
+End;</pre>
+        <p>Define um novo objeto 3D com um identificador.</p>
+    </div>
+
+    <h3>Vértices</h3>
+    <div class="command">
+        <p class="syntax">V x, y, z</p>
+        <p>Define um vértice nas coordenadas (x,y,z).</p>
+    </div>
+
+    <h3>Cores</h3>
+    <div class="command">
+        <p class="syntax">C r, g, b</p>
+        <p>Define a cor atual (valores entre 0 e 1).</p>
+    </div>
+
+    <h3>Faces</h3>
+    <div class="command">
+        <p class="syntax">F i1, i2, i3 C=#RRGGBB</p>
+        <p>Cria uma face triangular usando os índices de vértices i1, i2, i3 (começando de 0).
+        A parte <code>C=#RRGGBB</code> é opcional para definir a cor da face.</p>
+    </div>
+
+    <h2>Transformações</h2>
+
+    <h3>Dentro de um bloco de objeto</h3>
+    <div class="command">
+        <p class="syntax">R x, y, z</p>
+        <p>Rotação em graus nos eixos X, Y, Z</p>
+        
+        <p class="syntax">O x, y, z</p>
+        <p>Origem/Translação</p>
+        
+        <p class="syntax">S x, y, z</p>
+        <p>Escala</p>
+    </div>
+
+    <h3>Fora de um bloco de objeto</h3>
+    <div class="command">
+        <p class="syntax">MOV x, y, z ID "nome_objeto"</p>
+        <p>Move um objeto existente</p>
+        
+        <p class="syntax">C r, g, b ID "nome_objeto"</p>
+        <p>Muda a cor de um objeto existente</p>
+    </div>
+
+    <h2>Câmera</h2>
+    <div class="command">
+        <p class="syntax">CAM x, y, z LOOK tx, ty, tz</p>
+        <p>Posiciona a câmera em (x,y,z) olhando para o ponto (tx,ty,tz).</p>
+    </div>
+
+    <div class="example">
+        <h2>Exemplo</h2>
+        <pre>vari altura 2.0;
+
+ADD ID "cubo":
+  V -1, -1, -1
+  V 1, -1, -1
+  V 1, 1, -1
+  V -1, 1, -1
+  V -1, -1, 1
+  V 1, -1, 1
+  V 1, 1, 1
+  V -1, 1, 1
+  
+  C 1, 0, 0
+  F 0, 1, 2
+  F 0, 2, 3
+  
+  S 1, $altura, 1
+End;
+
+CAM 0, 0, 5 LOOK 0, 0, 0</pre>
+    </div>
+</body>
+</html>
