@@ -166,7 +166,7 @@ async function interpretarG3script(script, canvasId) {
   const shaderProgram = createProgram(gl, vertexShaderSource, fragmentShaderSource);
   gl.useProgram(shaderProgram);
 
-  const objects = new Map();  transformationMatrix } }
+  const objects = new Map();
   const variables = new Map();
   let cameraPosition = [0, 0, 5];
   let cameraLookAt = [0, 0, 0]; 
