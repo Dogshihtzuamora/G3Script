@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>Editor G3Script</title>
+    <style>
+        html, body { 
+            height: 100%; 
+            margin: 0; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e1e1e;
+            color: white;
+        }
+        #editor-container { 
+            display: flex; 
+            flex-direction: column; 
+            height: 100%; 
+        }
+        #toolbar {
+            display: flex;
+            padding: 10px;
+            background-color: #2c2c2c;
+            align-items: center;
+        }
+        #run-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        #run-button:hover {
+            background-color: #45a049;
+        }
+        #editor { 
+            width: 100%; 
+            flex-grow: 1; 
+            border: 1px solid #3c3c3c; 
+        }
+        
+       
+       
+   #save-modal, #load-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    #modal-content, #load-modal-content {
+        background-color: white;
+        padding: 20px;
+        border-radius: 5px;
+        text-align: center;
+    }
+
+    input {
+        margin-bottom: 10px;
+        padding: 5px;
+        font-size: 16px;
+    }
+
+    button {
+        padding: 10px;
+        margin: 5px;
+        cursor: pointer;
+    }
+
+ #project-list {
+    color: black; 
+}
+
+    #project-list li {
+        margin: 10px;
+        cursor: pointer;
+    }
+
+    #project-list li:hover {
+        background-color: #f0f0f0;
+    }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/theme-dracula.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ext-language_tools.js"></script>
+</head>
+<body>
+    <div id="editor-container">
+        <div id="toolbar">
+            <button id="run-button" onclick="executarCodigo()">Executar</button>
+             <button id="clear-button" onclick="limparCodigo()">Limpar</button>
+               <button id="save-button" onclick="abrirModal()">Salvar</button>
+               <button id="load-button" onclick="abrirModalProjetos()">Recuperar Projetos</button>
+        </div>
+        <div id="editor"></div>
+    </div>
+    
+    <div id="save-modal" style="display:none;">
+    <div id="modal-content">
+        <h2>Salvar Projeto</h2>
+        <input type="text" id="project-name" placeholder="Nome do Projeto">
+        <button onclick="salvarProjeto()">Salvar</button>
+        <button onclick="fecharModal()">Cancelar</button>
+    </div>
+</div>
+
+<div id="load-modal" style="display:none;">
+    <div id="load-modal-content">
+        <h2>Projetos Salvos</h2>
+        <ul id="project-list"></ul>
+        <button onclick="fecharModalProjetos()">Cancelar</button>
+    </div>
+</div>
+
+    <script>
+const palavrasChaveComCores = {
+    "ADD": "#FF5733",
+    "F": "#ff1f00",
+    "V": "#ff5f2a",
+    "C": "#ff9d2a",
+    "S": "#ffcc00",
+    "R": "#ffaa00",
+    "O": "#ff8800",
+    "MOV": "#ff7e15",
+    "CAM": "#ff7e15",
+    "vari": "#4caf50",
+    "IMPORT": "#2196f3",
+    "End": "#FF5733",
+    "$": "#007615",
+    "ID":"#ff9315",
+    "LOOK":"#ffdc00"
+};
+
+const variaveis = []; 
+const funcoes = []; 
+
+ace.define("ace/mode/melscript", ["require", "exports", "module", "ace/lib/oop", "ace/mode/text", "ace/mode/melscript_highlight_rules"],
+    function(require, exports, module) {
+        var oop = require("ace/lib/oop");
+        var TextMode = require("ace/mode/text").Mode;
+        var MelScriptHighlightRules = require("ace/mode/melscript_highlight_rules").MelScriptHighlightRules;
+
+        var Mode = function() {
+            this.HighlightRules = MelScriptHighlightRules;
+            this.$id = "ace/mode/melscript";
+        };
+
+        oop.inherits(Mode, TextMode);
+
+        exports.Mode = Mode;
+    }
+);
+
+ace.define("ace/mode/melscript_highlight_rules", ["require", "exports", "module"],
+    function(require, exports, module) {
+        var HighlightRules = require("ace/mode/text_highlight_rules").TextHighlightRules;
+
+        var MelScriptHighlightRules = function() {
+            this.$rules = {
+               "start": [
+                    { token: "comment.block", regex: /\/\*[\s\S]*?\*\// },
+                    { token: "comment.line", regex: /\/\/.*$/ },
+                    { token: "string", regex: /(["`'])(?:(?=(\\?))\2.)*?\1/ },
+                    { token: "constant.numeric", regex: /\b\d+\b/ },
+                    { token: "operator", regex: /[=+{\-*?,}]/ },
+                    { 
+                        token: "function_call", 
+                        regex: /\b[a-zA-Z_][a-zA-Z0-9_]*(?=\s*\()/,
+                        onMatch: function(val, state, stack) {
+                            if (Object.keys(palavrasChaveComCores).includes(val)) {
+                                return `keyword_${val}`;
+                            }
+                            return "function_call";
+                        }
+                    },
+                    { token: "punctuation", regex: /[\(\)]/ }
+                ]
+            };
+
+            for (const palavra in palavrasChaveComCores) {
+                const cor = palavrasChaveComCores[palavra];
+                this.$rules.start.push({
+                    token: `keyword_${palavra}`,  
+                    regex: `\\b${palavra}\\b(?!\\s*\\()`  
+                });
+
+                const estilo = document.createElement("style");
+                estilo.textContent = `.ace_keyword_${palavra} { color: ${cor}; }`;
+                document.head.appendChild(estilo);
+            }
+            
+            const estiloPontuacao = document.createElement("style");
+            estiloPontuacao.textContent = `.ace_punctuation { color: #ffffff; }`;
+            document.head.appendChild(estiloPontuacao);
+
+            const estiloOperador = document.createElement("style");
+            estiloOperador.textContent = `.ace_operator { color: #ffffff; }`;
+            document.head.appendChild(estiloOperador);
+
+            const estiloFuncao = document.createElement("style");
+            estiloFuncao.textContent = `.ace_function_call { color: #FFEB3B; }`;
+            document.head.appendChild(estiloFuncao);
+
+            const estiloVariavel = document.createElement("style");
+            estiloVariavel.textContent = `.ace_variable { color: #FF0000; }`;
+            document.head.appendChild(estiloVariavel);
+
+            this.$rules.start.push({
+                token: "identifier",
+                regex: "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b"
+            });
+
+            const estiloNaoListado = document.createElement("style");
+            estiloNaoListado.textContent = `.ace_identifier { color: #00eaff; }`;
+            document.head.appendChild(estiloNaoListado);
+        };
+
+        MelScriptHighlightRules.prototype = new HighlightRules();
+        exports.MelScriptHighlightRules = MelScriptHighlightRules;
+    }
+);
+
+const editor = ace.edit("editor");
+editor.setTheme("ace/theme/dracula");
+editor.getSession().setMode("ace/mode/melscript");
+
+editor.setOptions({
+    enableBasicAutocompletion: true,
+    enableLiveAutocompletion: true,
+    enableSnippets: true
+});
+
+editor.commands.on("afterExec", function(e) {
+    if (e.command.name === "insertstring") {
+        switch (e.args) {
+            case "{":
+                editor.insert("\n\n}");
+                editor.navigateUp();
+                break;
+            case "[":
+                editor.insert("]");
+                editor.navigateLeft();
+                break;
+            case "\"":
+                editor.insert("\"");
+                editor.navigateLeft();
+                break;
+            case "'":
+                editor.insert("'");
+                editor.navigateLeft();
+                break;
+            case "`":
+                editor.insert("`");
+                editor.navigateLeft();
+                break;
+            case "(":
+                editor.insert(")");
+                editor.navigateLeft();
+                break;
+        }
+    }
+});
+
+function atualizarDestaque() {
+    const sessao = editor.getSession();
+    const codigo = editor.getValue();
+    const linhas = codigo.split('\n');
+
+    const marcadores = sessao.getMarkers();
+    for (const id in marcadores) {
+        if (marcadores[id].clazz === "ace_function_call" || marcadores[id].clazz === "ace_variable") {
+            sessao.removeMarker(id);
+        }
+    }
+
+    linhas.forEach((linha, indiceLinha) => {
+        const regexParentesesVazios = /\(\s*\)/g;
+        let encontrado;
+
+        while ((encontrado = regexParentesesVazios.exec(linha)) !== null) {
+            const colunaInicio = encontrado.index;
+            const colunaFim = colunaInicio + 1;
+            
+            sessao.addMarker(
+                new ace.Range(indiceLinha, colunaInicio, indiceLinha, colunaFim),
+                "ace_function_call",
+                "text",
+                true
+            );
+        }
+
+        variaveis.forEach(nomeVar => {
+            let indiceInicio = 0;
+            while ((indiceInicio = linha.indexOf(nomeVar, indiceInicio)) !== -1) {
+                const indiceFim = indiceInicio + nomeVar.length;
+                const charAnterior = indiceInicio > 0 ? linha[indiceInicio - 1] : ' ';
+                const charProximo = indiceFim < linha.length ? linha[indiceFim] : ' ';
+                
+                if (!/[a-zA-Z0-9_]/.test(charAnterior) && !/[a-zA-Z0-9_]/.test(charProximo)) {
+                    sessao.addMarker(
+                        new ace.Range(indiceLinha, indiceInicio, indiceLinha, indiceFim),
+                        "ace_variable",
+                        "text",
+                        true
+                    );
+                }
+                indiceInicio = indiceFim;
+            }
+        });
+    });
+}
+
+const completador = {
+    getCompletions: function(editor, sessao, pos, prefixo, callback) {
+        const palavrasChave = Object.keys(palavrasChaveComCores);
+        const completacoes = [
+            ...palavrasChave.map(palavra => ({
+                caption: palavra,
+                value: palavra,
+                meta: "palavra-chave"
+            })),
+            ...variaveis.map(variavel => ({
+                caption: variavel,
+                value: variavel,
+                meta: "variável"
+            })),
+            ...funcoes.map(func => ({
+                caption: func + "()",
+                value: func + "()",
+                meta: "função"
+            }))
+        ];
+        callback(null, completacoes);
+    }
+};
+
+editor.completers = [completador];
+
+function atualizarCompletacoes() {
+    const codigo = editor.getValue();
+    
+    const regexVariavel = /\b([a-zA-Z_]\w*)\b\s*=/g;
+    variaveis.length = 0;
+    let encontrado;
+    while ((encontrado = regexVariavel.exec(codigo)) !== null) {
+        if (!variaveis.includes(encontrado[1])) {
+            variaveis.push(encontrado[1]);
+        }
+    }
+
+    const regexFuncao = /funcao\s+([a-zA-Z_]\w*)\s*\(/g;
+    funcoes.length = 0;
+    while ((encontrado = regexFuncao.exec(codigo)) !== null) {
+        if (!funcoes.includes(encontrado[1])) {
+            funcoes.push(encontrado[1]);
+        }
+    }
+
+    atualizarDestaque();
+}
+
+editor.getSession().on('change', atualizarCompletacoes);
+
+document.addEventListener('DOMContentLoaded', function() {
+    const saveModal = document.getElementById('save-modal');
+    const loadModal = document.getElementById('load-modal');
+    const projectNameInput = document.getElementById('project-name');
+    const projectList = document.getElementById('project-list');
+    const prefixoSite = 'meuSite-'; 
+    projectList.style.color = 'black'; 
+   
+    document.getElementById('save-button').onclick = function() {
+        abrirModal(); 
+    };
+  
+    document.getElementById('load-button').onclick = function() {
+        carregarProjetos();
+        loadModal.style.display = 'flex';
+    };
+  
+    function fecharModal() {
+        saveModal.style.display = 'none';
+    }
+    
+    function fecharModalProjetos() {
+        loadModal.style.display = 'none';
+    }
+  
+    function salvarProjeto() {
+        const codigo = editor.getValue(); 
+        const nomeProjeto = projectNameInput.value.trim();
+
+        if (nomeProjeto) {
+            const nomeProjetoComPrefixo = prefixoSite + nomeProjeto;
+          
+            const codigoComQuebras = codigo.replace(/\r?\n/g, '\n');
+                       
+            localStorage.setItem(nomeProjetoComPrefixo, codigoComQuebras);
+                       
+            fecharModal();
+            
+            alert(`Projeto "${nomeProjeto}" salvo com sucesso!`);
+        } else {
+            alert("Por favor, insira um nome para o projeto.");
+        }
+    }
+   
+    function carregarProjetos() {
+        projectList.innerHTML = '';
+      
+        for (let i = 0; i < localStorage.length; i++) {
+            const nomeProjeto = localStorage.key(i);
+            if (nomeProjeto.startsWith(prefixoSite)) { 
+                const li = document.createElement('li');
+                li.textContent = nomeProjeto.replace(prefixoSite, ''); 
+                li.onclick = function() {
+                    carregarProjeto(nomeProjeto);
+                    fecharModalProjetos();
+                };
+                projectList.appendChild(li);
+            }
+        }
+    }
+   
+    function carregarProjeto(nomeProjeto) {
+        const codigo = localStorage.getItem(nomeProjeto);
+        if (codigo) {
+            editor.setValue(codigo, -1); 
+            alert(`Projeto "${nomeProjeto.replace(prefixoSite, '')}" carregado!`);
+        } else {
+            alert("Erro ao carregar o projeto.");
+        }
+    }
+  
+    function abrirModal() {
+        saveModal.style.display = 'flex';
+    }
+   
+    window.fecharModal = fecharModal;
+    window.salvarProjeto = salvarProjeto;
+    window.fecharModalProjetos = fecharModalProjetos;
+});
+
+function executarCodigo() {
+    const codigo = editor.getValue();
+   
+    const codigoComQuebras = codigo.replace(/\r?\n/g, '\n');
+  
+    localStorage.setItem('codigoEditor', codigoComQuebras);
+       
+    window.location.href = 'Editor/Rec.html';
+}
+
+ 
+window.onload = function() {
+    const codigo = localStorage.getItem('codigoEditor');
+    
+    if (codigo) {
+
+        editor.setValue(codigo, -1); 
+                
+        localStorage.removeItem('codigoEditor');
+    }
+}
+    </script>
+</body>
+</html>
