@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Execução</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      height: 100%;
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+  <script src="https://g3script.netlify.app/G3Script/index.js"></script>
+</head>
+<body>
+  <canvas id="glCanvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById('glCanvas');
+
+    
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
+    
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    const codigo = localStorage.getItem('codigoEditor');
+
+    if (codigo) {
+      interpretarG3script(codigo, 'glCanvas')
+        .then(() => {
+          console.log('Código renderizado com sucesso!');
+        })
+        .catch(error => {
+          console.error('Erro ao renderizar:', error);
+         
+          const ctx = canvas.getContext('2d');
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = 'black';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = 'red';
+          ctx.font = '20px monospace';
+          ctx.fillText('Erro ao renderizar:', 10, 30);
+          ctx.fillText(error.message || String(error), 10, 60);
+        });
+    } else {
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = 'black';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'white';
+      ctx.font = '20px monospace';
+      ctx.fillText('Nenhum código encontrado no localStorage.', 10, 30);
+    }
+  </script>
+</body>
+</html>
